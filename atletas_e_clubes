@@ -1,14 +1,27 @@
+Objetivo: Coletar estatísticas de volumetria e eficiência (pontuação média) por equipe.
+
+DELIMITER $$
+
 CREATE PROCEDURE atletas_e_clubes()
 BEGIN
+    -- Gera relatório de desempenho e produtividade por equipe
     SELECT 
         C.nome_clube AS Equipe,
-        COUNT(DISTINCT A.id_atleta) AS Total_Atletas_Inscritos,
-        COUNT(R.id_resultado) AS Total_Provas_Disputadas,
-        SUM(R.pontos) AS Pontuacao_Total_Acumulada,
-        ROUND(AVG(R.pontos), 2) AS Media_Eficiencia_por_Prova
+        -- Conta quantos atletas únicos o clube possui no banco
+        COUNT(DISTINCT A.id_atleta) AS Total_Atletas,
+        -- Conta o número total de participações em provas
+        COUNT(R.id_resultado) AS Total_Participacoes,
+        -- Soma a pontuação total (Geral de Clubes)
+        COALESCE(SUM(R.pontos), 0) AS Pontuacao_Acumulada,
+        -- Calcula a média de pontos por prova (Métrica de Eficiência)
+        ROUND(COALESCE(AVG(R.pontos), 0), 2) AS Media_Eficiencia
     FROM CLUBE C
+    -- LEFT JOIN garante que clubes sem atletas ou sem resultados ainda apareçam no relatório
     LEFT JOIN ATLETA A ON C.id_clube = A.id_clube
     LEFT JOIN RESULTADO R ON A.id_atleta = R.id_atleta
     GROUP BY C.id_clube, C.nome_clube
-    ORDER BY Pontuacao_Total_Acumulada DESC;
-END;
+    -- Ordena pela pontuação total, conforme visto na interface do evento
+    ORDER BY Pontuacao_Acumulada DESC;
+END$$
+
+DELIMITER ;
