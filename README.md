@@ -1,23 +1,50 @@
 # SGBD_natacao
-1. Normalização de Domínios (Tabelas de Referência)
-SEXO, ESTADO, ESTILO e CATEGORIA: Foram isoladas em tabelas próprias para cumprir a 3ª Forma Normal. Isso evita a "anomalia de atualização" (ter que mudar o nome de um estilo em mil provas diferentes) e garante a integridade dos dados, impedindo valores inválidos ou variações de escrita (ex: "Masc" vs "Masculino").
+1. Estratégia de Normalização (3ª Forma Normal)
+A principal decisão de design foi a decomposição de atributos de texto em tabelas de domínio (Lookup Tables).
 
-2. Relacionamentos Identificadores vs. Não Identificadores
-Linhas Tracejadas (..): Utilizadas em CLUBE, SEXO, CATEGORIA e ESTILO. São relacionamentos não identificadores, pois um ATLETA ou uma PROVA possuem sua própria identidade (PK) e apenas referenciam essas tabelas como atributos estrangeiros (FK). Se o clube deixar de existir, o registro do atleta ainda possui integridade própria.
+Entidades de Domínio (SEXO, ESTADO, ESTILO, CATEGORIA): * Decisão: Em vez de armazenar "Masculino" ou "Pernambuco" como strings repetidas nas tabelas de ATLETA ou CLUBE, isolamos esses dados.
 
-Linhas Sólidas (--): Utilizadas entre ATLETA/PROVA e RESULTADO. O RESULTADO é uma entidade fraca no contexto lógico; ele não possui razão de existir sem um atleta que o realizou e uma prova de origem. Por isso, a relação é forte e identificadora.
+Justificativa: Isso elimina a redundância e impede "anomalias de inserção". Garante que um estilo de nado seja sempre escrito da mesma forma, facilitando agrupamentos e filtros em relatórios de desempenho.
 
-3. Cardinalidade e Notação Crow's Foot
-||--o{ (Exatamente um para zero ou muitos): Aplicado em PROVA para RESULTADO. Uma prova pode ser cadastrada no sistema antes de acontecer (ter zero resultados), mas cada resultado obrigatoriamente pertence a exatamente uma prova.
+Integridade: O uso de UK (Unique Key) nessas tabelas garante que não existam duplicatas lógicas (ex: duas entradas para o mesmo estado).
 
-||..o{ (Exatamente um para zero ou muitos): Aplicado em SEXO para ATLETA. Todo atleta deve ter um sexo definido no cadastro, mas o sistema pode ter um sexo cadastrado (ex: "Outro") que ainda não possui atletas vinculados.
+2. Hierarquia de Localização e Filiação
+ESTADO (UF) -> CLUBE -> ATLETA:
 
-4. Integridade de Chaves
-PK (Primary Key): IDs numéricos auto-incrementais para garantir performance em buscas e joins.
+Decisão: Criamos uma hierarquia clara de dependência.
 
-FK (Foreign Key): Garante que o banco de dados não aceite um atleta vinculado a um clube que não existe.
+Justificativa: Um clube está sediado em um estado, e um atleta é filiado a um clube. Ao separar o ESTADO do CLUBE, permitimos análises macro (ex: ranking de medalhas por estado) sem precisar varrer e limpar strings de texto nos registros dos clubes.
 
-UK (Unique Key): Aplicada em sigla de ESTADO e descricao de SEXO para impedir a criação de registros duplicados com nomes diferentes para a mesma entidade real.
+3. Especialização da PROVA
+Composição da PROVA:
+
+Decisão: A entidade PROVA não armazena o nome do estilo ou a categoria diretamente; ela é uma tabela de interseção técnica que une distancia, id_estilo, id_sexo e id_categoria.
+
+Justificativa: Isso permite que o sistema gerencie o calendário de eventos de forma dinâmica. Se a federação criar uma nova categoria (ex: "Master"), basta adicionar um registro na tabela CATEGORIA e vinculá-lo a novas PROVAS, sem alterar o código do sistema.
+
+4. Decomposição de Performance (RESULTADO e PARCIAL)
+Esta é a área mais crítica do banco, onde os dados de alta precisão são armazenados.
+
+RESULTADO (Entidade de Agregação):
+
+Decisão: Armazena o desfecho final do atleta em uma prova (tempo total, colocação e pontos).
+
+Justificativa: Centraliza os dados necessários para o Quadro de Medalhas e Pontuação de Eficiência visíveis na interface.
+
+PARCIAL (Entidade de Granularidade):
+
+Decisão: Criada como uma entidade dependente (1:N) de RESULTADO.
+
+Justificativa: Conforme solicitado, para suportar a soma de tempos que gera o total, a tabela PARCIAL permite armazenar múltiplos registros para um único resultado (ex: parciais de 50m em uma prova de 400m).
+
+Atributo Ordem: O campo ordem é vital para garantir que a sequência dos nados seja respeitada no cálculo da soma e na exibição do histórico de ritmo do atleta.
+
+5. Integridade Referencial e Tipagem
+Relacionamentos Identificadores (--): * Utilizados entre ATLETA/PROVA -> RESULTADO e RESULTADO -> PARCIAL. Se um atleta for removido ou uma prova cancelada, os resultados e parciais vinculados perdem o sentido e devem sofrer exclusão lógica ou física (Cascade).
+
+Relacionamentos Não Identificadores (..): * Utilizados para características biográficas ou técnicas (Sexo, Categoria, Estilo). O objeto principal (Atleta ou Prova) existe independentemente de uma alteração na descrição da tabela de domínio.
+
+Tipos de Dados: * Uso de TIME para precisão de milésimos, DECIMAL para pontuações (evitando erros de arredondamento de ponto flutuante) e INT para chaves primárias visando performance em indexação.
 ````mermaid
 erDiagram
     ESTADO ||--o{ CLUBE : "sedia"
