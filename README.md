@@ -29,6 +29,7 @@ erDiagram
     ESTILO ||..o{ PROVA : "caracteriza"
     ATLETA ||--o{ RESULTADO : "disputa"
     PROVA ||--o{ RESULTADO : "gera"
+    RESULTADO ||--|{ PARCIAL : "decompõe"
 
     ESTADO {
         int id_estado PK
@@ -80,6 +81,13 @@ erDiagram
         time tempo_final
         int colocacao
         decimal pontos
+    }
+
+    PARCIAL {
+        int id_parcial PK
+        int id_resultado FK
+        int ordem "Ex: 1 para os primeiros 50m"
+        time tempo_parcial "Tempo gasto no trecho"
     }
 ````
   
