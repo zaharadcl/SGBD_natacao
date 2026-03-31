@@ -1,0 +1,16 @@
+CREATE PROCEDURE quadro_de_medalhas()
+BEGIN
+    SELECT 
+        C.nome_clube AS Clube,
+        E.sigla AS UF,
+        COUNT(CASE WHEN R.colocacao = 1 THEN 1 END) AS Ouro,
+        COUNT(CASE WHEN R.colocacao = 2 THEN 1 END) AS Prata,
+        COUNT(CASE WHEN R.colocacao = 3 THEN 1 END) AS Bronze,
+        COUNT(CASE WHEN R.colocacao <= 3 THEN 1 END) AS Total_Medalhas
+    FROM CLUBE C
+    JOIN ESTADO E ON C.id_estado = E.id_estado
+    JOIN ATLETA A ON C.id_clube = A.id_clube
+    JOIN RESULTADO R ON A.id_atleta = R.id_atleta
+    GROUP BY C.id_clube, C.nome_clube, E.sigla
+    ORDER BY Ouro DESC, Prata DESC, Bronze DESC, Total_Medalhas DESC;
+END;
