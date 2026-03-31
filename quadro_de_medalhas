@@ -1,16 +1,28 @@
+Objetivo: Gerar o ranking oficial de clubes baseado no peso das medalhas (Ouro > Prata > Bronze).
+
+DELIMITER $$
+
 CREATE PROCEDURE quadro_de_medalhas()
 BEGIN
+    -- Seleciona os dados agregados para construir o ranking olímpico
     SELECT 
         C.nome_clube AS Clube,
         E.sigla AS UF,
+        -- Conta medalhas de Ouro (1ª colocação)
         COUNT(CASE WHEN R.colocacao = 1 THEN 1 END) AS Ouro,
+        -- Conta medalhas de Prata (2ª colocação)
         COUNT(CASE WHEN R.colocacao = 2 THEN 1 END) AS Prata,
+        -- Conta medalhas de Bronze (3ª colocação)
         COUNT(CASE WHEN R.colocacao = 3 THEN 1 END) AS Bronze,
+        -- Soma o total de pódios do clube
         COUNT(CASE WHEN R.colocacao <= 3 THEN 1 END) AS Total_Medalhas
     FROM CLUBE C
-    JOIN ESTADO E ON C.id_estado = E.id_estado
-    JOIN ATLETA A ON C.id_clube = A.id_clube
-    JOIN RESULTADO R ON A.id_atleta = R.id_atleta
+    INNER JOIN ESTADO E ON C.id_estado = E.id_estado
+    INNER JOIN ATLETA A ON C.id_clube = A.id_clube
+    INNER JOIN RESULTADO R ON A.id_atleta = R.id_atleta
     GROUP BY C.id_clube, C.nome_clube, E.sigla
+    -- Ordenação oficial: primeiro quem tem mais ouros, depois pratas, depois bronzes
     ORDER BY Ouro DESC, Prata DESC, Bronze DESC, Total_Medalhas DESC;
-END;
+END$$
+
+DELIMITER ;
