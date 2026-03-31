@@ -105,6 +105,8 @@ erDiagram
         int id_resultado PK
         int id_atleta FK
         int id_prova FK
+        int serie "Número da bateria/série do atleta"
+        int raia "Número da raia ocupada (1 a 8)"
         time tempo_final
         int colocacao
         decimal pontos
